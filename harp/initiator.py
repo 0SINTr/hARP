@@ -19,7 +19,7 @@ def load_mapping():
 
 # Determine subnet based on Responder's IP
 def determine_subnet(responder_ip):
-    octets = responder_ip.split('.')
+    octets = responder_ip.strip().split('.')
     if len(octets) != 4:
         raise ValueError("Invalid IP address format.")
     return '.'.join(octets[:3]) + '.'
@@ -35,7 +35,8 @@ def get_user_message(mapping):
         if all(char in allowed_chars for char in message):
             return message
         else:
-            print("Message contains invalid characters. Allowed characters are letters, numbers, space, underscore, dash, and dot.")
+            print("Message contains invalid characters. Allowed characters are:")
+            print(", ".join(sorted(allowed_chars)))
 
 # Convert message to MAC addresses
 def convert_message_to_mac(message, mapping):
@@ -55,16 +56,14 @@ def add_arp_entries(mac_addresses, subnet):
     for idx, mac in enumerate(mac_addresses, start=ARP_START):
         ip = f"{subnet}{idx}"
         command = f"sudo arp -s {ip} {mac}"
-        result = os.system(command)
-        if result == 0:
-            print(f"Added ARP entry: {ip} -> {mac}")
-        else:
-            print(f"Failed to add ARP entry: {ip} -> {mac}")
+        os.system(command)
+        # Suppress output as per your request
 
 # Send ping to Responder
 def send_ping(responder_ip):
-    print(f"Pinging Responder at {responder_ip} to signal message is ready...")
-    subprocess.run(["ping", "-c", "1", responder_ip])
+    # Suppress ping output by redirecting stdout and stderr
+    subprocess.run(["ping", "-c", "1", responder_ip],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 # Listen for incoming pings from Responder
 def listen_for_ping(responder_ip, callback):
@@ -72,7 +71,7 @@ def listen_for_ping(responder_ip, callback):
         if packet.haslayer(ICMP) and packet.haslayer(IP):
             if packet[IP].src == responder_ip:
                 callback()
-    sniff(filter="icmp", prn=packet_callback, store=0)
+    sniff(filter="icmp", prn=packet_callback, store=0, timeout=60)
 
 # SSH into Responder to read its ARP cache
 def read_responder_message(responder_ip, ssh_username, ssh_password, mapping, subnet):
@@ -110,7 +109,7 @@ def read_responder_message(responder_ip, ssh_username, ssh_password, mapping, su
         # Decode MAC addresses to message
         decoded = ""
         reverse_mapping = {v: k for k, v in mapping.items()}
-        for ip_address, mac in arp_entries:
+        for _, mac in arp_entries:
             for i in range(0, len(mac), 2):
                 pair = mac[i:i+2]
                 if pair in reverse_mapping:
@@ -137,7 +136,7 @@ def cleanup(subnet):
         print("SSH logs cleared.")
     except Exception as e:
         print(f"Failed to clear SSH logs: {e}")
-    # Confirmation message
+    # Confirmation message and wait before clearing the terminal
     print("Cleanup completed.")
     time.sleep(3)
     # Clear terminal
@@ -154,6 +153,10 @@ def main():
     except ValueError as ve:
         print(ve)
         return
+
+    # Get SSH credentials at the beginning
+    ssh_username = input("Enter the SSH username for the Responder: ")
+    ssh_password = input("Enter the SSH password for the Responder: ")
     
     # Step 2: Get user message
     message = get_user_message(mapping)
@@ -172,8 +175,6 @@ def main():
     # Step 6: Start listening for pings from Responder in a separate thread
     def on_message_ping():
         print(f"Received ping from {responder_ip}. Proceeding to read Responder's message.")
-        ssh_username = input("Enter the SSH username for the Responder: ")
-        ssh_password = input("Enter the SSH password for the Responder: ")
         read_responder_message(responder_ip, ssh_username, ssh_password, mapping, subnet)
         
         # Confirm reading
@@ -181,15 +182,15 @@ def main():
         if confirm == 'y':
             # Send ping to Responder to confirm message read
             send_ping(responder_ip)
-            print("Confirmation ping sent to Responder.")
             # Perform cleanup
             cleanup(subnet)
             exit(0)
         else:
             print("You chose not to read the message. Exiting.")
+            cleanup(subnet)
             exit(0)
 
-    listener_thread = threading.Thread(target=listen_for_ping, args=(responder_ip, on_message_ping), daemon=True)
+    listener_thread = threading.Thread(target=listen_for_ping, args=(responder_ip, on_message_ping))
     listener_thread.start()
     
     print("Listening for pings from Responder...")

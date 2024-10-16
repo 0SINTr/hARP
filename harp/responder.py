@@ -19,7 +19,7 @@ def load_mapping():
 
 # Determine subnet based on Initiator's IP
 def determine_subnet(initiator_ip):
-    octets = initiator_ip.split('.')
+    octets = initiator_ip.strip().split('.')
     if len(octets) != 4:
         raise ValueError("Invalid IP address format.")
     return '.'.join(octets[:3]) + '.'
@@ -35,7 +35,8 @@ def get_user_message(mapping):
         if all(char in allowed_chars for char in message):
             return message
         else:
-            print("Message contains invalid characters. Allowed characters are letters, numbers, space, underscore, dash, and dot.")
+            print("Message contains invalid characters. Allowed characters are:")
+            print(", ".join(sorted(allowed_chars)))
 
 # Convert message to MAC addresses
 def convert_message_to_mac(message, mapping):
@@ -55,16 +56,14 @@ def add_arp_entries(mac_addresses, subnet):
     for idx, mac in enumerate(mac_addresses, start=ARP_START):
         ip = f"{subnet}{idx}"
         command = f"sudo arp -s {ip} {mac}"
-        result = os.system(command)
-        if result == 0:
-            print(f"Added ARP entry: {ip} -> {mac}")
-        else:
-            print(f"Failed to add ARP entry: {ip} -> {mac}")
+        os.system(command)
+        # Suppress output as per your request
 
 # Send ping to Initiator
 def send_ping(initiator_ip):
-    print(f"Pinging Initiator at {initiator_ip} to signal message is ready...")
-    subprocess.run(["ping", "-c", "1", initiator_ip])
+    # Suppress ping output by redirecting stdout and stderr
+    subprocess.run(["ping", "-c", "1", initiator_ip],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 # Listen for incoming pings from Initiator
 def listen_for_ping(initiator_ip, callback):
@@ -72,7 +71,7 @@ def listen_for_ping(initiator_ip, callback):
         if packet.haslayer(ICMP) and packet.haslayer(IP):
             if packet[IP].src == initiator_ip:
                 callback()
-    sniff(filter="icmp", prn=packet_callback, store=0)
+    sniff(filter="icmp", prn=packet_callback, store=0, timeout=60)
 
 # SSH into Initiator to read its ARP cache
 def read_initiator_message(initiator_ip, ssh_username, ssh_password, mapping, subnet):
@@ -110,7 +109,7 @@ def read_initiator_message(initiator_ip, ssh_username, ssh_password, mapping, su
         # Decode MAC addresses to message
         decoded = ""
         reverse_mapping = {v: k for k, v in mapping.items()}
-        for ip_address, mac in arp_entries:
+        for _, mac in arp_entries:
             for i in range(0, len(mac), 2):
                 pair = mac[i:i+2]
                 if pair in reverse_mapping:
@@ -137,7 +136,7 @@ def cleanup(subnet):
         print("SSH logs cleared.")
     except Exception as e:
         print(f"Failed to clear SSH logs: {e}")
-    # Confirmation message
+    # Confirmation message and wait before clearing the terminal
     print("Cleanup completed.")
     time.sleep(3)
     # Clear terminal
@@ -167,32 +166,27 @@ def main():
         # Confirm reading
         confirm = input("Did you read the message? (y/n): ").lower()
         if confirm == 'y':
-            # Optionally send a message back
+            # Send reply without prompting for another message
             reply_message = get_user_message(mapping)
             reply_mac_addresses = convert_message_to_mac(reply_message, mapping)
             add_arp_entries(reply_mac_addresses, subnet)
-            if input("Reply message embedded in ARP cache. Send ping to Initiator? (y/n): ").lower() == 'y':
-                send_ping(initiator_ip)
-                # Now wait for confirmation ping from Initiator
-                def on_confirmation_ping():
-                    print("Received confirmation ping from Initiator. Performing cleanup.")
-                    cleanup(subnet)
-                    exit(0)
-                print("Waiting for confirmation ping from Initiator...")
-                confirmation_listener = threading.Thread(target=listen_for_ping, args=(initiator_ip, on_confirmation_ping), daemon=True)
-                confirmation_listener.start()
-                while confirmation_listener.is_alive():
-                    time.sleep(1)
-            else:
-                print("Exiting without sending ping.")
+            send_ping(initiator_ip)
+            # Now wait for confirmation ping from Initiator
+            def on_confirmation_ping():
+                print("Received confirmation ping from Initiator. Performing cleanup.")
                 cleanup(subnet)
                 exit(0)
+            print("Waiting for confirmation ping from Initiator...")
+            confirmation_listener = threading.Thread(target=listen_for_ping, args=(initiator_ip, on_confirmation_ping))
+            confirmation_listener.start()
+            while confirmation_listener.is_alive():
+                time.sleep(1)
         else:
             print("You chose not to read the message. Exiting.")
             cleanup(subnet)
             exit(0)
 
-    listener_thread = threading.Thread(target=listen_for_ping, args=(initiator_ip, on_message_ping), daemon=True)
+    listener_thread = threading.Thread(target=listen_for_ping, args=(initiator_ip, on_message_ping))
     listener_thread.start()
     
     print("Listening for pings from Initiator...")
