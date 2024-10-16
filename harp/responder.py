@@ -29,7 +29,7 @@ def determine_subnet(initiator_ip):
 def get_user_message(mapping):
     allowed_chars = set(mapping.keys())
     while True:
-        message = input(Style.BRIGHT + "[INPUT] " + Style.RESET_ALL + f"Enter a message (up to {MAX_MESSAGE_LENGTH} characters): ").lower()
+        message = input(Style.BRIGHT + "[INPUT] " + Style.RESET_ALL + f"Enter a reply (up to {MAX_MESSAGE_LENGTH} characters): ").lower()
         if len(message) > MAX_MESSAGE_LENGTH:
             print(Style.BRIGHT + "[INFO] " + Style.RESET_ALL + f"Message too long. Truncated to {MAX_MESSAGE_LENGTH} characters.")
             message = message[:MAX_MESSAGE_LENGTH]
@@ -118,7 +118,7 @@ def read_initiator_message(initiator_ip, ssh_username, ssh_password, mapping, su
                 else:
                     # Ignore unknown pairs or padding
                     pass
-        print(Style.BRIGHT + Fore.GREEN + "\n[MESSAGE RECEIVED] " + Style.RESET_ALL + f"Message from Initiator: {decoded}")
+        print(Style.BRIGHT + Fore.GREEN + "\n[MESSAGE RECEIVED] " + Style.RESET_ALL + f"Message from Initiator: {decoded}\n")
     except Exception as e:
         print(Style.BRIGHT + "[ERROR] " + Style.RESET_ALL + f"Error reading Initiator's message: {e}")
 

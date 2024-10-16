@@ -118,7 +118,7 @@ def read_responder_message(responder_ip, ssh_username, ssh_password, mapping, su
                 else:
                     # Ignore unknown pairs or padding
                     pass
-        print(Style.BRIGHT + Fore.GREEN + "\n[MESSAGE RECEIVED] " + f"Message from Responder: {decoded}")
+        print(Style.BRIGHT + Fore.GREEN + "\n[MESSAGE RECEIVED] " + Style.RESET_ALL + f"Message from Responder: {decoded}\n")
     except Exception as e:
         print(Style.BRIGHT + "[ERROR] " + Style.RESET_ALL + f"Error reading Responder's message: {e}")
 
