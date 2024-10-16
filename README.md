@@ -171,7 +171,7 @@ sudo python3 initiator.py
 
 ## 🎯 Planned Upgrades
 
-- [ ] Improved CLI experience
+- [x] Improved CLI experience
 - [ ] Validating IP addresses
 - [ ] More testing is needed
 
