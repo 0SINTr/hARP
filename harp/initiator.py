@@ -7,7 +7,6 @@ from scapy.all import sniff, ICMP, IP
 import paramiko
 
 # Constants
-ARP_PREFIX = "192.168.68."  # This will be dynamically determined
 ARP_START = 201
 ARP_END = 210
 MAX_MESSAGE_LENGTH = 60
@@ -29,7 +28,7 @@ def determine_subnet(responder_ip):
 def get_user_message(mapping):
     allowed_chars = set(mapping.keys())
     while True:
-        message = input(f"Enter a message (up to {MAX_MESSAGE_LENGTH} characters): ")
+        message = input(f"Enter a message (up to {MAX_MESSAGE_LENGTH} characters): ").lower()
         if len(message) > MAX_MESSAGE_LENGTH:
             print(f"Message too long. Truncated to {MAX_MESSAGE_LENGTH} characters.")
             message = message[:MAX_MESSAGE_LENGTH]
@@ -82,14 +81,12 @@ def read_responder_message(responder_ip, ssh_username, ssh_password, mapping, su
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(responder_ip, username=ssh_username, password=ssh_password)
-        # Corrected grep pattern to match lines with '(' followed by subnet
-        grep_command = f"arp -an | grep '\\({subnet}'"
-        stdin, stdout, stderr = ssh.exec_command(grep_command)
+        stdin, stdout, stderr = ssh.exec_command("arp -an")
         arp_output = stdout.read().decode()
         ssh.close()
         
         if not arp_output.strip():
-            print("No ARP entries found for the specified subnet.")
+            print("No ARP entries found.")
             return
         
         print("ARP Output:")
@@ -100,13 +97,26 @@ def read_responder_message(responder_ip, ssh_username, ssh_password, mapping, su
             print(f"Processing line: {line}")  # Debugging
             parts = line.split()
             if len(parts) >= 4:
-                mac = parts[3].replace(':', '')
-                arp_entries.append(mac)
+                ip_part = parts[1]  # Should be (IP)
+                ip_address = ip_part.strip('()')
+                if ip_address.startswith(subnet):
+                    mac = parts[3].replace(':', '').upper()
+                    arp_entries.append((ip_address, mac))
         
+        if not arp_entries:
+            print("No ARP entries found for the specified subnet.")
+            return
+
+        # Sort arp_entries based on the last octet of the IP address
+        def get_last_octet(ip_address):
+            return int(ip_address.split('.')[-1])
+
+        arp_entries.sort(key=lambda x: get_last_octet(x[0]))
+
         # Decode MAC addresses to message
         decoded = ""
         reverse_mapping = {v: k for k, v in mapping.items()}
-        for mac in arp_entries:
+        for ip_address, mac in arp_entries:
             for i in range(0, len(mac), 2):
                 pair = mac[i:i+2]
                 if pair in reverse_mapping:
@@ -180,7 +190,9 @@ def main():
                 add_arp_entries(reply_mac_addresses, subnet)
                 if input("Reply message embedded in ARP cache. Send ping to Responder? (y/n): ").lower() == 'y':
                     send_ping(responder_ip)
-    
+        else:
+            print("You chose not to read the message. Returning to listening mode.")
+
     listener_thread = threading.Thread(target=listen_for_ping, args=(responder_ip, on_message_ping), daemon=True)
     listener_thread.start()
     
