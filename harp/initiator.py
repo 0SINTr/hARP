@@ -1,10 +1,11 @@
 import os
 import json
-import subprocess
-import threading
 import time
-from scapy.all import sniff, ICMP, IP
 import paramiko
+import threading
+import subprocess
+from colorama import Fore, Style
+from scapy.all import sniff, ICMP, IP
 
 # Constants
 ARP_START = 201
@@ -21,22 +22,22 @@ def load_mapping():
 def determine_subnet(responder_ip):
     octets = responder_ip.strip().split('.')
     if len(octets) != 4:
-        raise ValueError("Invalid IP address format.")
+        raise ValueError(Style.BRIGHT + "[ERROR] " + Style.RESET_ALL + "Invalid IP address format.")
     return '.'.join(octets[:3]) + '.'
 
 # Validate and get user message
 def get_user_message(mapping):
     allowed_chars = set(mapping.keys())
     while True:
-        message = input(f"Enter a message (up to {MAX_MESSAGE_LENGTH} characters): ").lower()
+        message = input(Style.BRIGHT + "[INPUT] " + Style.RESET_ALL + f"Enter a message (up to {MAX_MESSAGE_LENGTH} characters): ").lower()
         if len(message) > MAX_MESSAGE_LENGTH:
-            print(f"Message too long. Truncated to {MAX_MESSAGE_LENGTH} characters.")
+            print(Style.BRIGHT + "[INFO] " + Style.RESET_ALL + f"Message too long. Truncated to {MAX_MESSAGE_LENGTH} characters.")
             message = message[:MAX_MESSAGE_LENGTH]
         if all(char in allowed_chars for char in message):
             return message
         else:
-            print("Message contains invalid characters. Allowed characters are:")
-            print(", ".join(sorted(allowed_chars)))
+            print(Style.BRIGHT + "[INFO] " + Style.RESET_ALL + "Message contains invalid characters. Allowed characters are:")
+            print(Style.BRIGHT + "[INFO] " + Style.RESET_ALL + ", ".join(sorted(allowed_chars)))
 
 # Convert message to MAC addresses
 def convert_message_to_mac(message, mapping):
@@ -84,7 +85,7 @@ def read_responder_message(responder_ip, ssh_username, ssh_password, mapping, su
         ssh.close()
         
         if not arp_output.strip():
-            print("No ARP entries found.")
+            print(Style.BRIGHT + "[ERROR] " + Style.RESET_ALL + "No ARP entries found.")
             return
         
         arp_entries = []
@@ -100,7 +101,7 @@ def read_responder_message(responder_ip, ssh_username, ssh_password, mapping, su
                         arp_entries.append((ip_address, mac))
         
         if not arp_entries:
-            print("No ARP entries found for the specified subnet.")
+            print(Style.BRIGHT + "[ERROR] " + Style.RESET_ALL + "No ARP entries found for the specified subnet.")
             return
 
         # Sort arp_entries based on the last octet of the IP address
@@ -117,27 +118,27 @@ def read_responder_message(responder_ip, ssh_username, ssh_password, mapping, su
                 else:
                     # Ignore unknown pairs or padding
                     pass
-        print(f"Message from Responder: {decoded}")
+        print(Style.BRIGHT + Fore.GREEN + "\n[MESSAGE RECEIVED] " + f"Message from Responder: {decoded}")
     except Exception as e:
-        print(f"Error reading Responder's message: {e}")
+        print(Style.BRIGHT + "[ERROR] " + Style.RESET_ALL + f"Error reading Responder's message: {e}")
 
 # Cleanup function
 def cleanup(subnet):
-    print("Performing cleanup...")
+    print(Style.BRIGHT + "[INFO] " + Style.RESET_ALL + "Performing cleanup...")
     # Clear ARP cache entries within the subnet and ARP_START to ARP_END
     for idx in range(ARP_START, ARP_END + 1):
         ip = f"{subnet}{idx}"
         command = ["sudo", "arp", "-d", ip]
         subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    print("ARP cache entries cleared.")
+    print(Style.BRIGHT + "[INFO] " + Style.RESET_ALL + "ARP cache entries cleared.")
     # Clear SSH auth logs (Linux specific)
     try:
         subprocess.run(["sudo", "truncate", "-s", "0", "/var/log/auth.log"],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        print("SSH logs cleared.")
+        print(Style.BRIGHT + "[INFO] " + Style.RESET_ALL + "SSH logs cleared.")
     except Exception as e:
-        print(f"Failed to clear SSH logs: {e}")
-    print("Cleanup completed.")
+        print(Style.BRIGHT + "[ERROR] " + Style.RESET_ALL + f"Failed to clear SSH logs: {e}")
+    print(Style.BRIGHT + "[INFO] " + Style.RESET_ALL + "Cleanup completed.")
     time.sleep(3)
     os.system('clear')
 
@@ -146,16 +147,16 @@ def main():
     mapping = load_mapping()
     
     # Step 1: Get Responder's IP
-    responder_ip = input("Enter the Responder's IP address: ")
+    responder_ip = input(Style.BRIGHT + "[INPUT] " + Style.RESET_ALL + "Enter the Responder's IP address: ")
     try:
         subnet = determine_subnet(responder_ip)
     except ValueError as ve:
-        print(ve)
+        print(Style.BRIGHT + "[ERROR] " + Style.RESET_ALL + ve)
         return
 
     # Get SSH credentials at the beginning
-    ssh_username = input("Enter the SSH username for the Responder: ")
-    ssh_password = input("Enter the SSH password for the Responder: ")
+    ssh_username = input(Style.BRIGHT + "[INPUT] " + Style.RESET_ALL + "Enter the SSH username for the Responder: ")
+    ssh_password = input(Style.BRIGHT + "[INPUT] " + Style.RESET_ALL + "Enter the SSH password for the Responder: ")
     
     # Step 2: Get user message
     message = get_user_message(mapping)
@@ -167,17 +168,17 @@ def main():
     add_arp_entries(mac_addresses, subnet)
     
     # Step 5: Ask user to send ping
-    send_ping_confirm = input("Message embedded in ARP cache. Send ping to Responder? (y/n): ").lower()
+    send_ping_confirm = input(Style.BRIGHT + "[INPUT] " + Style.RESET_ALL + "Message embedded in ARP cache. Send ping to Responder? (y/n): ").lower()
     if send_ping_confirm == 'y':
         send_ping(responder_ip)
     
     # Step 6: Start listening for pings from Responder in a separate thread
     def on_message_ping():
-        print(f"Received ping from {responder_ip}. Proceeding to read Responder's message.")
+        print(Style.BRIGHT + "[INFO] " + Style.RESET_ALL + f"Received ping from {responder_ip}. Proceeding to read Responder's message.")
         read_responder_message(responder_ip, ssh_username, ssh_password, mapping, subnet)
         
         # Confirm reading
-        confirm = input("Did you read the message? (y/n): ").lower()
+        confirm = input(Style.BRIGHT + "[INPUT] " + Style.RESET_ALL + "Did you read the message? (y/n): ").lower()
         if confirm == 'y':
             # Send ping to Responder to confirm message read
             send_ping(responder_ip)
@@ -185,14 +186,14 @@ def main():
             cleanup(subnet)
             exit(0)
         else:
-            print("You chose not to read the message. Exiting.")
+            print(Style.BRIGHT + "[INFO] " + Style.RESET_ALL + "You chose not to read the message. Exiting.")
             cleanup(subnet)
             exit(0)
 
     listener_thread = threading.Thread(target=listen_for_ping, args=(responder_ip, on_message_ping))
     listener_thread.start()
     
-    print("Listening for pings from Responder...")
+    print(Style.BRIGHT + "[INFO] " + Style.RESET_ALL + "Listening for pings from Responder...")
     
     # Keep the main thread alive to continue listening
     try:
