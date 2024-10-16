@@ -12,12 +12,12 @@
 ## 📋 Table of Contents
 
 - [🕵️ hARP: Covert Communication via ARP Cache](#-harp-covert-communication-via-arp-cache)
- - [Advantages](#advantages)
- - [How It Works](#how-it-works)
- - [System Requirements](#system-requirements)
- - [Installation and Setup](#installation-and-setup)
- - [Usage](#usage)
- - [Security Considerations](#security-considerations)
+ - [🎯 Advantages](#advantages)
+ - [🛠️ How It Works](#how-it-works)
+ - [🖥️ System Requirements](#system-requirements)
+ - [⚙️ Installation and Setup](#installation-and-setup)
+ - [📝 Usage](#usage)
+ - [⛑️ Security Considerations](#security-considerations)
  - [🎯 Planned Upgrades](#-planned-upgrades)
  - [⚠️ Disclaimer](#-disclaimer)
  - [📜 License](#-license)
