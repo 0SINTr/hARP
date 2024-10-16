@@ -52,17 +52,15 @@ def convert_message_to_mac(message, mapping):
         mac_addresses.append(mac)
     return mac_addresses
 
+# Checking IP validity
 def is_ip_available(ip_address):
     import subprocess
     try:
-        # Suppress output by redirecting stdout and stderr
-        subprocess.check_output(['ping', '-c', '1', '-W', '1', ip_address],
-                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        # If ping succeeds, the IP is in use
-        return False
+        subprocess.run(['ping', '-c', '1', '-W', '1', ip_address],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        return False  # IP is in use
     except subprocess.CalledProcessError:
-        # Ping failed, IP is likely available
-        return True
+        return True  # IP is available
 
 # Add static ARP entries
 def add_arp_entries(mac_addresses, subnet):
