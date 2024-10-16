@@ -170,9 +170,7 @@ sudo python3 initiator.py
 - **Log Clearing**: Clearing logs may violate organizational policies. Ensure compliance before using **hARP**.
 
 ## 🎯 Planned Upgrades
-
 - [x] Improved CLI experience
-- [ ] Validating IP addresses
 - [ ] More testing is needed
 
 ## ️⚠️ Disclaimer
