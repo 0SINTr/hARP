@@ -5,34 +5,34 @@
 [![Stable Release](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/0SINTr/hARP/releases/tag/v0.1.0)
 [![Last Commit](https://img.shields.io/github/last-commit/0SINTr/hARP)](https://github.com/0SINTr/hARP/commits/main/)
 
-**hARP** is a covert communication tool that enables two hosts on the same network to exchange messages by manipulating their ARP caches. By embedding messages into static ARP entries, hARP allows for discreet data exchange without raising suspicions from standard network monitoring tools.
+**hARP** is a covert communication tool that enables two hosts on the same network to exchange messages by manipulating their ARP caches. By embedding messages into static ARP entries, **hARP** allows for discreet data exchange without raising suspicions from standard network monitoring tools.
 
 🍀 **NOTE:** This is an ongoing **reasearch project** for educational purposes rather than a full-fledged production-ready tool, so treat it accordingly.
 
 ## 📋 Table of Contents
 
 - [🕵️ hARP: Covert Communication via ARP Cache](#-harp-covert-communication-via-arp-cache)
- - [🎯 Advantages](#advantages)
- - [🛠️ How It Works](#how-it-works)
- - [🖥️ System Requirements](#system-requirements)
- - [⚙️ Installation and Setup](#installation-and-setup)
- - [📝 Usage](#usage)
- - [⛑️ Security Considerations](#security-considerations)
- - [🎯 Planned Upgrades](#-planned-upgrades)
- - [⚠️ Disclaimer](#-disclaimer)
- - [📜 License](#-license)
- - [📧 Contact](#-professional-collaborations)
+  - [🎯 Advantages](#advantages)
+  - [🛠️ How It Works](#how-it-works)
+  - [🖥️ System Requirements](#system-requirements)
+  - [⚙️ Installation and Setup](#installation-and-setup)
+  - [📝 Usage](#usage)
+  - [⛑️ Security Considerations](#security-considerations)
+  - [🎯 Planned Upgrades](#-planned-upgrades)
+  - [⚠️ Disclaimer](#-disclaimer)
+  - [📜 License](#-license)
+  - [📧 Contact](#-professional-collaborations)
 
 ## 🎯 Advantages
 
-- **Stealthy Communication**: hARP leverages ARP cache entries to hide messages, making it difficult for traditional network security tools to detect the communication.
-- **Minimal Network Footprint**: By using ARP cache manipulation and minimal ICMP pings, hARP avoids generating significant network traffic.
+- **Stealthy Communication**: **hARP** leverages ARP cache entries to hide messages, making it difficult for traditional network security tools to detect the communication.
+- **Minimal Network Footprint**: By using ARP cache manipulation and minimal ICMP pings, **hARP** avoids generating significant network traffic.
 - **No Additional Network Services Required**: Operates without the need for extra network services or open ports, reducing exposure to network scans.
 - **Customizable and Extensible**: Users can extend the character mapping to support additional characters or symbols as needed.
 
 ## 🛠️ How It Works
 
-hARP consists of two main components: the **Initiator** and the **Responder**. The communication flow between them involves the following steps:
+**hARP** consists of two main components: the **Initiator** and the **Responder**. The communication flow between them involves the following steps:
 
 1. **Initialization**:
    - The Initiator and Responder agree on a range of IP addresses within their shared subnet to use for ARP cache manipulation.
@@ -82,7 +82,7 @@ hARP consists of two main components: the **Initiator** and the **Responder**. T
 - **Network Configuration**:
   - Both hosts must be on the same subnet.
   - SSH server running on both hosts.
-  - Mutual SSH access with appropriate credentials or SSH keys.
+  - Mutual SSH access with appropriate credentials.
 - **Privileges**:
   - Administrative (sudo) privileges to modify ARP cache entries and clear logs.
 
@@ -119,6 +119,8 @@ Modify or extend the mappings if you need to support additional characters.
 
 ## 📝 Usage
 ### 1. Start the Responder
+Prior to initiating the scripts, the Initiator user and the Responder user should **securely share** their IP addresses and SSH username/password, as well as who's going to run the Initiator and Responder respectively. Once this initial exchange is done, they will be able to run hARP whenever they need without any prerequisites.
+
 On the **Responder** host:
 
 ```bash
@@ -127,7 +129,7 @@ sudo python3 responder.py
 
 - Input Prompts:
   - Enter the Initiator's IP address.
-  - Enter the SSH username and password (or ensure SSH keys are set up).
+  - Enter the SSH username and password.
 - The Responder will wait for a ping from the Initiator.
 
 ### 2. Start the Initiator
@@ -139,16 +141,16 @@ sudo python3 initiator.py
 
 - Input Prompts:
   - Enter the Responder's IP address.
-  - Enter the SSH username and password (or ensure SSH keys are set up).
+  - Enter the SSH username and password.
   - Enter your message (up to 60 characters).
-- The Initiator will embed the message in ARP cache entries and send a ping to the Responder.
+- The Initiator will embed the message in its own ARP cache entries and send a ping to the Responder.
 
 ### 3. Message Exchange
 - Responder:
   - Receives the ping and reads the message from the Initiator's ARP cache.
   - Displays the message to the user.
   - Inputs a reply message.
-  - Embeds the reply in ARP cache entries and sends a ping back to the Initiator.
+  - Embeds the reply in its own ARP cache entries and sends a ping back to the Initiator.
 
 - Initiator:
   - Receives the ping and reads the reply message from the Responder's ARP cache.
@@ -162,21 +164,31 @@ sudo python3 initiator.py
   - Clear the terminal screen.
 
 ## ⛑️ Security Considerations
-- **Administrative Privileges**: hARP requires sudo privileges, so ensure that only trusted users have access to the scripts.
-- **Network Impact**: Manipulating ARP tables can have unintended consequences on network operations. Use hARP in controlled environments.
-- **SSH Credentials**: Be cautious with SSH passwords. It's recommended to use SSH keys.
-- **Log Clearing**: Clearing logs may violate organizational policies. Ensure compliance before using hARP.
+- **Administrative Privileges**: **hARP** requires sudo privileges, so ensure that only trusted users have access to the scripts.
+- **Network Impact**: Manipulating ARP tables can have unintended consequences on network operations. Use **hARP** in controlled environments.
+- **SSH Credentials**: Be cautious with SSH passwords. Always share sensitive data through a separate secure channel.
+- **Log Clearing**: Clearing logs may violate organizational policies. Ensure compliance before using **hARP**.
 
 ## 🎯 Planned Upgrades
 
-- [ ] More testing is needed
 - [ ] Improved CLI experience
+- [ ] Validating IP addresses
+- [ ] More testing is needed
 
 ## ️⚠️ Disclaimer
 **hARP** is intended for educational and authorized security testing purposes only. Unauthorized interception or manipulation of network traffic is illegal and unethical. Users are responsible for ensuring that their use of this tool complies with all applicable laws and regulations. The developers of **hARP** do not endorse or support any malicious or unauthorized activities. Use this tool responsibly and at your own risk.
 
 ## 📜 License
 **hARP** is licensed under the [GNU GENERAL PUBLIC LICENSE Version 3](https://github.com/0SINTr/hARP/blob/main/LICENSE).
+
+## 🙏 Special Thank You
+The idea behind creating **hARP** was inspired by the concept of **Network Dead Drops** pioneered by Tobias Schmidbauer, Steffen Wendzel, Aleksandra Mileva and Wojciech Mazurczyk in **Introducing Dead Drops to Network Steganography using ARP-Caches and SNMP-Walks** (more details [here](https://dl.acm.org/doi/10.1145/3339252.3341488)).
+
+Main differences between the original approach and **hARP**:
+- Unlike the original **Network Dead Drops** concept, **hARP** does not use an unaware 3rd party to store hidden messages.
+- Unlike the original **Network Dead Drops** concept, **hARP** uses *static* ARP entries that each host generates itself.
+- Unlike the original **Network Dead Drops** concept, **hARP** uses ARP for storage and SSH for retrieval, instead of SNMP.
+- Other differences in nuances of the overall logic and communication flow, as well as of the actual code implementation.
 
 ## 📧 Professional Collaborations
 
