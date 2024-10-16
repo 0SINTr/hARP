@@ -1,4 +1,9 @@
-# hARP: Covert Communication via ARP Cache 🕵️‍♂️
+![hARP](docs/hARP.png)
+# 🕵️ hARP: Covert Communication via ARP Cache 🕵️‍♂️
+
+![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)
+[![Stable Release](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/0SINTr/hARP/releases/tag/v0.1.0)
+[![Last Commit](https://img.shields.io/github/last-commit/0SINTr/hARP)](https://github.com/0SINTr/hARP/commits/main/)
 
 **hARP** is a covert communication tool that enables two hosts on the same network to exchange messages by manipulating their ARP caches. By embedding messages into static ARP entries, hARP allows for discreet data exchange without raising suspicions from standard network monitoring tools.
 
