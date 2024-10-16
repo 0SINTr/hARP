@@ -127,19 +127,18 @@ def cleanup(subnet):
     # Clear ARP cache entries within the subnet and ARP_START to ARP_END
     for idx in range(ARP_START, ARP_END + 1):
         ip = f"{subnet}{idx}"
-        command = f"sudo arp -d {ip}"
-        os.system(command)
+        command = ["sudo", "arp", "-d", ip]
+        subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     print("ARP cache entries cleared.")
     # Clear SSH auth logs (Linux specific)
     try:
-        os.system("sudo truncate -s 0 /var/log/auth.log")
+        subprocess.run(["sudo", "truncate", "-s", "0", "/var/log/auth.log"],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         print("SSH logs cleared.")
     except Exception as e:
         print(f"Failed to clear SSH logs: {e}")
-    # Confirmation message and wait before clearing the terminal
     print("Cleanup completed.")
     time.sleep(3)
-    # Clear terminal
     os.system('clear')
 
 # Main function for Initiator
