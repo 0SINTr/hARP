@@ -62,16 +62,15 @@ def add_arp_entries(mac_addresses, subnet):
             print(f"Failed to add ARP entry: {ip} -> {mac}")
 
 # Send ping to Initiator
-def send_ping(initiator_ip, size=56):
+def send_ping(initiator_ip):
     print(f"Pinging Initiator at {initiator_ip} to signal message is ready...")
-    subprocess.run(["ping", "-c", "1", "-s", str(size), initiator_ip])
+    subprocess.run(["ping", "-c", "1", initiator_ip])
 
 # Listen for incoming pings from Initiator
 def listen_for_ping(initiator_ip, callback):
     def packet_callback(packet):
         if packet.haslayer(ICMP) and packet.haslayer(IP):
             if packet[IP].src == initiator_ip:
-                print(f"Received ping from {initiator_ip}.")
                 callback()
     sniff(filter="icmp", prn=packet_callback, store=0)
 
@@ -89,29 +88,24 @@ def read_initiator_message(initiator_ip, ssh_username, ssh_password, mapping, su
             print("No ARP entries found.")
             return
         
-        print("ARP Output:")
-        print(arp_output)  # Debugging: Print the fetched ARP entries
-        
         arp_entries = []
         for line in arp_output.splitlines():
-            print(f"Processing line: {line}")  # Debugging
             parts = line.split()
             if len(parts) >= 4:
                 ip_part = parts[1]  # Should be (IP)
                 ip_address = ip_part.strip('()')
                 if ip_address.startswith(subnet):
-                    mac = parts[3].replace(':', '').upper()
-                    arp_entries.append((ip_address, mac))
+                    last_octet = int(ip_address.split('.')[-1])
+                    if ARP_START <= last_octet <= ARP_END:
+                        mac = parts[3].replace(':', '').upper()
+                        arp_entries.append((ip_address, mac))
         
         if not arp_entries:
             print("No ARP entries found for the specified subnet.")
             return
 
         # Sort arp_entries based on the last octet of the IP address
-        def get_last_octet(ip_address):
-            return int(ip_address.split('.')[-1])
-
-        arp_entries.sort(key=lambda x: get_last_octet(x[0]))
+        arp_entries.sort(key=lambda x: int(x[0].split('.')[-1]))
 
         # Decode MAC addresses to message
         decoded = ""
@@ -121,6 +115,9 @@ def read_initiator_message(initiator_ip, ssh_username, ssh_password, mapping, su
                 pair = mac[i:i+2]
                 if pair in reverse_mapping:
                     decoded += reverse_mapping[pair]
+                else:
+                    # Ignore unknown pairs or padding
+                    pass
         print(f"Message from Initiator: {decoded}")
     except Exception as e:
         print(f"Error reading Initiator's message: {e}")
@@ -164,22 +161,36 @@ def main():
     
     # Step 3: Start listening for pings from Initiator in a separate thread
     def on_message_ping():
-        print(f"Ping received from {initiator_ip}. Proceeding to read Initiator's message.")
+        print(f"Received ping from {initiator_ip}. Proceeding to read Initiator's message.")
         read_initiator_message(initiator_ip, ssh_username, ssh_password, mapping, subnet)
         
         # Confirm reading
         confirm = input("Did you read the message? (y/n): ").lower()
         if confirm == 'y':
             # Optionally send a message back
-            send_reply = input("Do you want to send a message back? (y/n): ").lower()
-            if send_reply == 'y':
-                reply_message = get_user_message(mapping)
-                reply_mac_addresses = convert_message_to_mac(reply_message, mapping)
-                add_arp_entries(reply_mac_addresses, subnet)
-                if input("Reply message embedded in ARP cache. Send ping to Initiator? (y/n): ").lower() == 'y':
-                    send_ping(initiator_ip)
+            reply_message = get_user_message(mapping)
+            reply_mac_addresses = convert_message_to_mac(reply_message, mapping)
+            add_arp_entries(reply_mac_addresses, subnet)
+            if input("Reply message embedded in ARP cache. Send ping to Initiator? (y/n): ").lower() == 'y':
+                send_ping(initiator_ip)
+                # Now wait for confirmation ping from Initiator
+                def on_confirmation_ping():
+                    print("Received confirmation ping from Initiator. Performing cleanup.")
+                    cleanup(subnet)
+                    exit(0)
+                print("Waiting for confirmation ping from Initiator...")
+                confirmation_listener = threading.Thread(target=listen_for_ping, args=(initiator_ip, on_confirmation_ping), daemon=True)
+                confirmation_listener.start()
+                while confirmation_listener.is_alive():
+                    time.sleep(1)
+            else:
+                print("Exiting without sending ping.")
+                cleanup(subnet)
+                exit(0)
         else:
-            print("You chose not to read the message. Returning to listening mode.")
+            print("You chose not to read the message. Exiting.")
+            cleanup(subnet)
+            exit(0)
 
     listener_thread = threading.Thread(target=listen_for_ping, args=(initiator_ip, on_message_ping), daemon=True)
     listener_thread.start()
@@ -188,7 +199,7 @@ def main():
     
     # Keep the main thread alive to continue listening
     try:
-        while True:
+        while listener_thread.is_alive():
             time.sleep(1)
     except KeyboardInterrupt:
         print("\nExiting Responder.")
