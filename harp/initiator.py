@@ -7,9 +7,9 @@ from scapy.all import sniff, ICMP, IP
 import paramiko
 
 # Constants
-ARP_PREFIX = "192.168.68."  # Placeholder; will be determined dynamically
-ARP_START = 201            # Starting octet for fake IPs
-ARP_END = 210              # Ending octet for fake IPs
+ARP_PREFIX = "192.168.68."  # This will be dynamically determined
+ARP_START = 201
+ARP_END = 210
 MAX_MESSAGE_LENGTH = 60
 MAC_ADDRESS_FORMAT = "{}:{}:{}:{}:{}:{}"
 
@@ -82,15 +82,24 @@ def read_responder_message(responder_ip, ssh_username, ssh_password, mapping, su
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(responder_ip, username=ssh_username, password=ssh_password)
-        stdin, stdout, stderr = ssh.exec_command("arp -an | grep '^" + subnet + "'")
+        # Corrected grep pattern to match lines with '(' followed by subnet
+        grep_command = f"arp -an | grep '\\({subnet}'"
+        stdin, stdout, stderr = ssh.exec_command(grep_command)
         arp_output = stdout.read().decode()
         ssh.close()
         
+        if not arp_output.strip():
+            print("No ARP entries found for the specified subnet.")
+            return
+        
+        print("ARP Output:")
+        print(arp_output)  # Debugging: Print the fetched ARP entries
+        
         arp_entries = []
         for line in arp_output.splitlines():
+            print(f"Processing line: {line}")  # Debugging
             parts = line.split()
             if len(parts) >= 4:
-                ip = parts[1].strip('()')
                 mac = parts[3].replace(':', '')
                 arp_entries.append(mac)
         

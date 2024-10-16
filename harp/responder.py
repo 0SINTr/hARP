@@ -7,9 +7,9 @@ from scapy.all import sniff, ICMP, IP
 import paramiko
 
 # Constants
-ARP_PREFIX = "192.168.68."  # Placeholder; will be determined dynamically
-ARP_START = 201            # Starting octet for fake IPs
-ARP_END = 210              # Ending octet for fake IPs
+ARP_PREFIX = "192.168.68."  # This will be dynamically determined
+ARP_START = 201
+ARP_END = 210
 MAX_MESSAGE_LENGTH = 60
 MAC_ADDRESS_FORMAT = "{}:{}:{}:{}:{}:{}"
 
@@ -82,15 +82,24 @@ def read_initiator_message(initiator_ip, ssh_username, ssh_password, mapping, su
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(initiator_ip, username=ssh_username, password=ssh_password)
-        stdin, stdout, stderr = ssh.exec_command("arp -an | grep '^" + subnet + "'")
+        # Corrected grep pattern to match lines with '(' followed by subnet
+        grep_command = f"arp -an | grep '\\({subnet}'"
+        stdin, stdout, stderr = ssh.exec_command(grep_command)
         arp_output = stdout.read().decode()
         ssh.close()
         
+        if not arp_output.strip():
+            print("No ARP entries found for the specified subnet.")
+            return
+        
+        print("ARP Output:")
+        print(arp_output)  # Debugging: Print the fetched ARP entries
+        
         arp_entries = []
         for line in arp_output.splitlines():
+            print(f"Processing line: {line}")  # Debugging
             parts = line.split()
             if len(parts) >= 4:
-                ip = parts[1].strip('()')
                 mac = parts[3].replace(':', '')
                 arp_entries.append(mac)
         
@@ -131,7 +140,7 @@ def cleanup(subnet):
 def main():
     mapping = load_mapping()
     
-    # Step 1: Get Initiator's IP and SSH credentials
+    # Step 1: Get Initiator's IP
     initiator_ip = input("Enter the Initiator's IP address: ")
     try:
         subnet = determine_subnet(initiator_ip)
@@ -139,10 +148,11 @@ def main():
         print(ve)
         return
     
+    # Step 2: Get SSH credentials
     ssh_username = input("Enter the SSH username for the Initiator: ")
     ssh_password = input("Enter the SSH password for the Initiator: ")
     
-    # Step 2: Start listening for pings from Initiator in a separate thread
+    # Step 3: Start listening for pings from Initiator in a separate thread
     def on_message_ping():
         print(f"Ping received from {initiator_ip}. Proceeding to read Initiator's message.")
         read_initiator_message(initiator_ip, ssh_username, ssh_password, mapping, subnet)
