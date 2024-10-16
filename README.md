@@ -7,7 +7,7 @@
 
 **hARP** is a covert communication tool that enables two hosts on the same network to exchange messages by manipulating their ARP caches. By embedding messages into static ARP entries, **hARP** allows for discreet data exchange without raising suspicions from standard network monitoring tools.
 
-🍀 **NOTE:** This is an ongoing **reasearch project** for educational purposes rather than a full-fledged production-ready tool, so treat it accordingly.
+🍀 **NOTE:** This is an ongoing **research project** for educational purposes rather than a full-fledged production-ready tool, so treat it accordingly.
 
 ## 📋 Table of Contents
 
