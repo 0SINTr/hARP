@@ -52,37 +52,13 @@ def convert_message_to_mac(message, mapping):
         mac_addresses.append(mac)
     return mac_addresses
 
-# Checking IP validity
-def is_ip_available(ip_address):
-    import subprocess
-    try:
-        subprocess.run(['ping', '-c', '1', '-W', '1', ip_address],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-        return False  # IP is in use
-    except subprocess.CalledProcessError:
-        return True  # IP is available
-
 # Add static ARP entries
 def add_arp_entries(mac_addresses, subnet):
-    idx = ARP_START
-    for mac in mac_addresses:
-        # Find the next available IP
-        while idx <= ARP_END:
-            ip = f"{subnet}{idx}"
-            if is_ip_available(ip):
-                # IP is available; proceed to add ARP entry
-                command = f"sudo arp -s {ip} {mac}"
-                os.system(command)
-                idx += 1
-                break
-            else:
-                # IP is in use; check the next one
-                idx += 1
-        else:
-            # No available IPs in the range
-            print("No available IP addresses in the specified range.")
-            return False  # Indicate failure
-    return True  # Indicate success
+    for idx, mac in enumerate(mac_addresses, start=ARP_START):
+        ip = f"{subnet}{idx}"
+        command = f"sudo arp -s {ip} {mac}"
+        os.system(command)
+        # Suppress output as per your request
 
 # Send ping to Responder
 def send_ping(responder_ip):
@@ -189,10 +165,7 @@ def main():
     mac_addresses = convert_message_to_mac(message, mapping)
     
     # Step 4: Add ARP entries
-    success = add_arp_entries(mac_addresses, subnet)
-    if not success:
-        print("Failed to add ARP entries due to lack of available IP addresses.")
-        return
+    add_arp_entries(mac_addresses, subnet)
     
     # Step 5: Ask user to send ping
     send_ping_confirm = input(Style.BRIGHT + "[INPUT] " + Style.RESET_ALL + "Message embedded in ARP cache. Send ping to Responder? (y/n): ").lower()
