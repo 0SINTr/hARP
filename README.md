@@ -186,7 +186,7 @@ Main differences between the original approach and **hARP**:
 - Unlike the original **Network Dead Drops** concept, **hARP** does not use an unaware 3rd party to store hidden messages.
 - Unlike the original **Network Dead Drops** concept, **hARP** uses *static* ARP entries that each host generates itself.
 - Unlike the original **Network Dead Drops** concept, **hARP** uses ARP for storage and SSH for retrieval, instead of SNMP.
-- Unlike the original **Network Dead Drops** concept, **hARP** does not send any part of the hidden message through the network.
+- **hARP** does not involve a 3rd party for the dead drop which may raise suspicions or be illegal. Also reduces complexity.
 - Other differences in nuances of the overall logic and communication flow, as well as of the actual code implementation.
 
 ## 📧 Professional Collaborations
