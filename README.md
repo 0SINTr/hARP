@@ -75,7 +75,7 @@
 
 ## 🖥️ System Requirements
 
-- **Operating System**: Linux-based systems (tested on Ubuntu, Kali Linux)
+- **Operating System**: Linux-based systems (tested on Kali Linux)
 - **Python**: Python 3.8 or higher
 - **Python Packages**:
   - `scapy`
