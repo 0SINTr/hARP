@@ -190,6 +190,8 @@ sudo python3 initiator.py
 The idea behind creating **hARP** was inspired by the concept of **Network Dead Drops** pioneered by Tobias Schmidbauer, Steffen Wendzel, Aleksandra Mileva and Wojciech Mazurczyk in **Introducing Dead Drops to Network Steganography using ARP-Caches and SNMP-Walks** (more details [here](https://dl.acm.org/doi/10.1145/3339252.3341488)).
 
 Main differences between the original approach and **hARP**:
+- **hARP** introduces a new flavor of **Network Dead Drops**, named **Active Self-Hosted Network Dead Drops**.
+- **Active** because there is an active connection established. **Self-Hosted** because the encoder stores the hidden message.
 - Unlike the original **Network Dead Drops** concept, **hARP** does not use an unaware 3rd party to store hidden messages.
 - Unlike the original **Network Dead Drops** concept, **hARP** uses *static* ARP entries that each host generates itself.
 - Unlike the original **Network Dead Drops** concept, **hARP** uses ARP for storage and SSH for retrieval, instead of SNMP.
