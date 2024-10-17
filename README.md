@@ -111,6 +111,12 @@ sudo systemctl enable ssh
 sudo systemctl status ssh
 ```
 
+### 4. Allow SSH Through Firewall
+If any of the two hosts has a firewall running, it should either be disabled (not recommended) or configured to allow incoming SSH connections on port 22. Example for **ufw**:
+```bash
+sudo ufw allow ssh
+```
+
 🍀 **NOTE:** Default SSH username is host username, default SSH password is host password.
 
 ### 4. Update Character Mapping (Optional)
